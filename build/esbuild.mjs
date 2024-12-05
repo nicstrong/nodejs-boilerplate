@@ -19,29 +19,26 @@ const prodConfig = {
 }
 
 /** @type esbuild.BuildContext<BuildOptions> */
-esbuild
-  .context({
-    entryPoints: ['src/index.ts'],
-    outfile: 'dist/index.js',
-    bundle: true,
-    platform: 'node',
-    format: 'esm',
-    define: {
-      VERSION: JSON.stringify(process.env.npm_package_version),
-      DEVELOP: JSON.stringify(!!argv.dev),
-    },
+const ctx = await esbuild.context({
+  entryPoints: ['src/index.ts'],
+  outfile: 'dist/index.js',
+  bundle: true,
+  platform: 'node',
+  format: 'esm',
+  define: {
+    VERSION: JSON.stringify(process.env.npm_package_version),
+    DEVELOP: JSON.stringify(!!argv.dev),
+  },
 
-    metafile: argv.meta,
-    ...(argv.dev ? devConfig : prodConfig),
-  })
-  .then((ctx) => {
-    if (argv.watch) {
-      ctx.watch()
-    } else {
-      ctx.rebuild().then((res) => {
-        if (argv.meta)
-          fs.writeFileSync('dist/meta.json', JSON.stringify(res.metafile))
-        exit(0)
-      })
-    }
-  })
+  metafile: argv.meta,
+  ...(argv.dev ? devConfig : prodConfig),
+})
+
+if (argv.watch) {
+  await ctx.watch()
+} else {
+  const res = await ctx.rebuild()
+  if (argv.meta)
+    fs.writeFileSync('dist/meta.json', JSON.stringify(res.metafile))
+  ctx.dispose()
+}
